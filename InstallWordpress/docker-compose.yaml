@@ -1,0 +1,58 @@
+version: '3.1'
+
+#Under Services we have to mention all the images which we want to make our project
+# For Eg: In our case Wordpress so we require wordpress Image, mysql image, myphpadmin image.
+services: 
+  
+  #Database
+  db:
+    image: mysql:5.7
+    volumes:
+      - /home/ballalamit/Desktop/Clouddrove/PracticeFile/InstallWordpress/db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password   #This variable sets the password for the root user of the MySQL instance running in the container. The value is set to password(use this to log in phpmyadmin).
+      MYSQL_DATABASE: wordpress       #This variable sets the name of the default database that will be created when the container starts. The value is set to wordpress(u can see it in phpmyadmin as well).
+      MYSQL_USER: wordpressuser           
+      MYSQL_PASSWORD: wordpresspassword
+    networks: #run all services, run on docker custom network(wpsite) so that all 3 container can talk with each other and isloated from host and other container
+      - wpsite
+
+
+  #Wordpress 
+  wordpress:
+    depends_on: #it depends on Database
+      - db
+    image: wordpress    #Wordpress Image
+    restart: always     #When host reboots our container restarts
+    ports:
+      - 8000:80
+    volumes:
+      - /home/ballalamit/Desktop/Clouddrove/PracticeFile/InstallWordpress/wordpress_content/:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: db:3306          #default port for mysql
+      WORDPRESS_DB_USER: wordpress        #should match with MYSQL_USER
+      WORDPRESS_DB_PASSWORD: wordpress    #should match with MYSQL_PASSWORD
+    networks:
+      - wpsite
+
+
+  # phpmyadmin 
+  phpmyadmin: #we use phpmyadmin to edit create database from web
+    depends_on:  #depends on database
+      - db
+    image: phpmyadmin/phpmyadmin  #phpmyadmin image name
+    restart: always
+    ports:
+      - '8001:80'  #we need acces to phpmyadmin from our local machine
+    environment:
+      PMA_HOST: db    #define port of mysql server
+      MYSQL_ROOT_PASSWORD: password 
+    networks:
+      - wpsite
+
+#this are used by mutiple services so they are kept here
+networks:
+  wpsite:
+volumes:
+  db_data:
