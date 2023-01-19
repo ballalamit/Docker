@@ -1,0 +1,96 @@
+Method 1- Mounting docker. sock (inner docker can see outer docker images)
+
+1- Install docker on Local Machine
+2- docker run -it -d --name dockerinner -v /var/run/docker.sock:/var/run/docker.sock docker
+Now we have docker inside docker 
+3- sudo docker exec -it <containername> sh
+4- Try to pull some images in inner docker( u will se the same image in host docker as well and vise versa)
+Note- I installed vim first in my local system and than I ran vi Dockerfile in inner container
+-----
+#Description of flags and command-
+
+docker run: This command is used to run a new container using a specified image.
+
+-v /var/run/docker.sock:/var/run/docker.sock: This flag is used to mount a volume in the container. In this case, the host machine's Docker sock file located at /var/run/docker.sock is being mounted at the same location inside the container. This allows the container to access the host's Docker daemon and perform Docker commands.
+
+-ti: This flag stands for -t and -i and it creates a pseudo-TTY that attaches stdin and stdout. This allows you to interact with the container in a terminal-like way.
+
+docker: this is the image that you want to run inside the container.
+-----
+#What is Docker sock-
+The Docker sock file, also known as the Docker daemon socket, is a Unix socket that the Docker daemon listens on by default. It provides a way for other processes to communicate with the Docker daemon and perform Docker commands, such as starting and stopping containers, creating and managing images, and more.
+
+The Docker sock file is typically located at /var/run/docker.sock on Linux systems. It is a file-based socket, which means that it is represented by a file on the file system and can be accessed using standard file operations.
+
+For example, to see the list of running containers on the host machine, you can use the command docker ps, which sends a request to the Docker daemon to retrieve the list of running containers.
+
+
+
+
+
+--------------------
+--------------------
+
+Method 2- Dind Method (Inner docker cannot se outside docker images and vice versa)
+1- Install docker on Local Machine
+2- docker run --privileged -d --name dind-test docker:dind
+Now we have docker inside docker 
+3- sudo docker exec -it <containername> sh
+4- Try to pull some images in inner docker
+
+Note-I installed tree in Local system but that did not appreared in my inner docker
+-----
+#Expalnation of the command-  docker run --privileged -d --name dind-test docker:dind
+
+docker run: This command is used to run a new container using a specified image.
+
+--privileged: This flag is used to give the container access to the host's devices and kernel features. It is necessary to run Docker in Docker (DinD) as it allows the container to access the host's Docker daemon.
+
+-d: This flag stands for --detach, it runs the container in detached mode, which means it runs in the background and doesn't attach to the terminal.
+
+--name dind-test: This flag sets the name of the container to dind-test.
+
+docker:dind: This is the image that you want to run inside the container. dind stands for Docker in Docker, it's an official image from Docker that allows running a Docker daemon inside of a container.
+
+So in summary, this command runs a new container named dind-test using the docker:dind image in detached mode and with the privileged mode on, allowing the container to access the host's devices, kernel features, and Docker daemon. This means that the container can perform any Docker command as if it were running on the host.
+----
+
+#why to use privileged flag
+The --privileged flag is used to give the container access to the host's devices and kernel features.
+By default, containers run in a limited environment, where they do not have access to the host's devices and kernel features, this is to ensure that a container cannot access or modify the host machine's resources. However, some applications require access to the host's resources, and in those cases, the --privileged flag is used.
+
+
+
+
+----------------------------
+--------------------------
+Method 3- Docker in Docker Using Sysbox Runtime
+Step 1: Install sysbox runtime environment. Refer to this page to get the latest official instructions on installing sysbox runtime. https://github.com/nestybox/sysbox#installing-sysbox
+Step 2: Once you have the sysbox runtime available, all you have to do is start the docker container with a sysbox runtime flag as shown below. Here we are using the official docker dind image.
+
+docker run --runtime=sysbox-runc --name sysbox-dind -d docker:dind
+
+Step 3: Now take an exec session to the sysbox-dind container.
+
+docker exec -it sysbox-dind /bin/sh
+
+Now, you can try building images with the Dockerfile as shown in the previous methods.
+
+-----
+#Explanation of the command- docker run --runtime=sysbox-runc --name sysbox-dind -d docker:dind
+
+docker run: This command is used to run a new container using a specified image.
+
+--runtime=sysbox-runc: This flag is used to specify the runtime that should be used to run the container. The sysbox-runc is a specialized runtime that is used for container isolation and management.
+
+--name sysbox-dind: This flag sets the name of the container to sysbox-dind.
+
+-d: This flag runs the container in detached mode, which means it runs in the background and doesn't attach to the terminal.
+
+docker:dind: This is the image that you want to run inside the container. dind stands for Docker in Docker, it's an official image from Docker that allows running a Docker daemon inside of a container.
+----
+
+#why --privileged was not used in above command?
+The --privileged flag was not used in the command you provided because it might not be necessary in this case. The sysbox-runc runtime provides the necessary isolation and management features that the container needs to run a Docker daemon inside of it.
+
+
